@@ -1,0 +1,18 @@
+# Ignorar arquivo de configuração com credenciais
+config.py
+
+# Ignorar arquivos compilados Python
+*.pyc
+
+# Ignorar diretório de ambiente virtual (caso decida usar no futuro)
+venv/
+
+# Ignorar arquivos de sistema
+.DS_Store
+Thumbs.db
+
+# Ignorar arquivos temporários
+*.tmp
+
+# Ignorar arquivos de log
+*.log
