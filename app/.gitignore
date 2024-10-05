@@ -1,5 +1,6 @@
 # Ignorar arquivo de configuração com credenciais
 config.py
+.env
 
 # Ignorar arquivos compilados Python
 *.pyc
@@ -16,3 +17,8 @@ Thumbs.db
 
 # Ignorar arquivos de log
 *.log
+
+# Ignorar arquivos de musicas transferidas
+*.mp3
+*.mp4
+*.webm
