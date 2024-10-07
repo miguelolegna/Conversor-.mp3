@@ -1,87 +1,31 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Conversor Spotify para MP3</title>
-    <link rel="stylesheet" href="/static/styles.css">
+    <link rel="stylesheet" href="styles.css">
+    <title>Document</title>
 </head>
-<body>
-    <div class="container">
-        <h1>Conversor Spotify para MP3</h1>
-        <form id="converter-form">
-            <input type="url" id="spotify-url" placeholder="Cole o link do Spotify aqui" required>
-            <button type="submit">Converter</button>
-        </form>
-        <div id="result"></div>
-        <div id="progress-container" style="display: none;">
-            <progress id="progress-bar" value="0" max="100"></progress>
-            <p id="status-message"></p>
-        </div>
-    </div>
-    <script>
-        document.getElementById('converter-form').addEventListener('submit', function(e) {
-            e.preventDefault();
-            var spotifyUrl = document.getElementById('spotify-url').value;
-            var resultDiv = document.getElementById('result');
-            var progressContainer = document.getElementById('progress-container');
-            var progressBar = document.getElementById('progress-bar');
-            var statusMessage = document.getElementById('status-message');
-            
-            resultDiv.innerHTML = '';
-            progressContainer.style.display = 'block';
-            progressBar.value = 0;
-            statusMessage.textContent = 'Iniciando conversão...';
-            
-            // Iniciar o polling de progresso
-            let pollInterval = setInterval(() => {
-                fetch('/progress?url=' + encodeURIComponent(spotifyUrl))
-                    .then(response => response.json())
-                    .then(data => {
-                        progressBar.value = data.progress;
-                        statusMessage.textContent = data.status;
-                        if (data.progress >= 100) {
-                            clearInterval(pollInterval);
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Erro ao buscar progresso:', error);
-                    });
-            }, 1000);
 
-            fetch('/convert?url=' + encodeURIComponent(spotifyUrl))
-                .then(response => {
-                    if (!response.ok) {
-                        return response.json().then(err => { throw err });
-                    }
-                    return response.blob();
-                })
-                .then(blob => {
-                    var url = window.URL.createObjectURL(blob);
-                    var a = document.createElement('a');
-                    a.href = url;
-                    a.download = 'converted_song.mp3';
-                    document.body.appendChild(a);
-                    a.click();
-                    window.URL.revokeObjectURL(url);
-                    resultDiv.innerHTML = 'Conversão concluída! O download deve começar automaticamente.';
-                    progressContainer.style.display = 'none';
-                    clearInterval(pollInterval);
-                })
-                .catch(error => {
-                    console.error('Erro:', error);
-                    if (error.detail && error.detail.spotify_info) {
-                        resultDiv.innerHTML = `Erro: ${error.detail.message}<br>
-                            Música: ${error.detail.spotify_info.track}<br>
-                            Artista: ${error.detail.spotify_info.artist}<br>
-                            <a href="${error.detail.spotify_info.url}" target="_blank">Link do Spotify</a>`;
-                    } else {
-                        resultDiv.innerHTML = 'Erro na conversão: ' + (error.detail || error.message || 'Erro desconhecido');
-                    }
-                    progressContainer.style.display = 'none';
-                    clearInterval(pollInterval);
-                });
-        });
-    </script>
+<body>
+
+    <h1 class="titulo1">Escolha a sua plataforma:</h1>
+    <figure id="imageContainer1">
+        <figcaption>Youtube</figcaption>
+        <img id="wordImage" src="img/Word/word(org).jpg" alt="Word">
+    </figure>
+    
+    <figure id="imageContainer2">
+       <figcaption>Spotify</figcaption>
+        <img id="powerpointImage" src="img/Powerpoint/Powerpoint logo(1).png" alt="Powerpoint">
+    </figure>
+    
+    <figure id="imageContainer3">
+        <figcaption>Apple Music</figcaption>
+        <img id="excelImage" src="img\Exel/exel(org).jpg" alt="Exel">
+    </figure>
+
+
+    <script src="script.js"></script>
 </body>
 </html>
