@@ -1,6 +1,7 @@
 import os
 import tempfile
 import asyncio
+import time
 from fastapi import FastAPI, Query, HTTPException, BackgroundTasks
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -39,6 +40,7 @@ ydl_opts = {
     }],
     'ffmpeg_location': FFMPEG_PATH,
     'outtmpl': os.path.join(TEMP_DIR, '%(title)s.%(ext)s'),
+    'keepvideo': True,  # Manter o arquivo de vídeo original
 }
 
 # Dicionário para armazenar o progresso das conversões
@@ -84,6 +86,10 @@ async def convert_spotify_to_mp3(background_tasks: BackgroundTasks, url: str = Q
                 info = ydl.extract_info(f"ytsearch:{search_query}", download=True)['entries'][0]
                 filename = os.path.join(TEMP_DIR, f"{info['title']}.mp3")
                 logger.debug(f"File downloaded: {filename}")
+
+                # Aguardar um pouco para garantir que a conversão seja concluída
+                time.sleep(2)
+
             except Exception as e:
                 logger.error(f"Error during YouTube download: {str(e)}")
                 raise HTTPException(status_code=500, detail={
@@ -96,8 +102,13 @@ async def convert_spotify_to_mp3(background_tasks: BackgroundTasks, url: str = Q
                 })
 
         # Verificar se o arquivo foi realmente criado
+        attempts = 0
+        while not os.path.exists(filename) and attempts < 10:
+            time.sleep(1)
+            attempts += 1
+
         if not os.path.exists(filename):
-            logger.error(f"MP3 file not created: {filename}")
+            logger.error(f"MP3 file not created after {attempts} attempts: {filename}")
             raise HTTPException(status_code=500, detail="O arquivo MP3 não foi criado corretamente")
 
         logger.debug(f"Conversion completed: {filename}")
