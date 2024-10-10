@@ -3,7 +3,7 @@ import tempfile
 import asyncio
 import time
 from fastapi import FastAPI, Query, HTTPException, BackgroundTasks
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.responses import JSONResponse
 import spotipy
@@ -48,9 +48,12 @@ conversion_progress = {}
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
-@app.get("/")
+@app.get("/", response_class=HTMLResponse)
 async def read_root():
-    return FileResponse("static/index.html")
+    logger.debug("Serving index.html")
+    with open("static/index.html", "r") as file:
+        content = file.read()
+    return HTMLResponse(content=content)
 
 @app.get("/progress")
 async def get_progress(url: str = Query(..., description="URL do Spotify")):
@@ -124,6 +127,13 @@ async def convert_spotify_to_mp3(background_tasks: BackgroundTasks, url: str = Q
     finally:
         if url in conversion_progress:
             del conversion_progress[url]
+
+@app.get("/spotify.html", response_class=HTMLResponse)
+async def spotify_page():
+    logger.debug("Serving spotify.html")
+    with open("static/spotify.html", "r") as file:
+        content = file.read()
+    return HTMLResponse(content=content)
 
 async def delayed_file_removal(file_path, delay):
     await asyncio.sleep(delay)
