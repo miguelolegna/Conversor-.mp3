@@ -31,17 +31,23 @@ sp = spotipy.Spotify(client_credentials_manager=client_credentials_manager)
 FFMPEG_PATH = os.getenv('FFMPEG_PATH')
 TEMP_DIR = tempfile.gettempdir()
 
-ydl_opts = {
-    'format': 'bestaudio/best',
-    'postprocessors': [{
-        'key': 'FFmpegExtractAudio',
-        'preferredcodec': 'mp3',
-        'preferredquality': '192',
-    }],
-    'ffmpeg_location': FFMPEG_PATH,
-    'outtmpl': os.path.join(TEMP_DIR, '%(title)s.%(ext)s'),
-    'keepvideo': True,  # Manter o arquivo de vídeo original
-}
+def download_audio(url):
+    ydl_opts = {
+        'format': 'bestaudio/best',
+        'postprocessors': [{
+            'key': 'FFmpegExtractAudio',
+            'preferredcodec': 'mp3',
+            'preferredquality': '192',
+        }],
+        'outtmpl': os.path.join(TEMP_DIR, '%(title)s.%(ext)s'),
+        'keepvideo': False,  # Remover o arquivo de vídeo original após conversão
+    }
+
+    if FFMPEG_PATH:
+        os.environ['PATH'] = FFMPEG_PATH + os.pathsep + os.environ['PATH']
+    
+    with youtube_dl.YoutubeDL(ydl_opts) as ydl:
+        ydl.download([url])
 
 # Dicionário para armazenar o progresso das conversões
 conversion_progress = {}
@@ -56,69 +62,101 @@ async def read_root():
     return HTMLResponse(content=content)
 
 @app.get("/progress")
-async def get_progress(url: str = Query(..., description="URL do Spotify")):
+async def get_progress(url: str = Query(..., description="URL do link de qualquer plataforma")):
     progress = conversion_progress.get(url, {"progress": 0, "status": "Iniciando..."})
     return JSONResponse(progress)
 
 @app.get("/convert")
-async def convert_spotify_to_mp3(background_tasks: BackgroundTasks, url: str = Query(..., description="URL do Spotify")):
+async def convert_link_to_mp3(background_tasks: BackgroundTasks, url: str = Query(..., description="URL de qualquer plataforma")):
     filename = None
     try:
-        conversion_progress[url] = {"progress": 0, "status": "Buscando informações da música..."}
-        
-        track = sp.track(url)
-        artist = track['artists'][0]['name']
-        song_name = track['name']
-        search_query = f"{artist} - {song_name}"
-        
-        conversion_progress[url] = {"progress": 20, "status": "Procurando vídeo correspondente..."}
-        
-        with youtube_dl.YoutubeDL(ydl_opts) as ydl:
-            try:
-                def progress_hook(d):
-                    if d['status'] == 'downloading':
-                        progress = int(float(d['downloaded_bytes']) / float(d['total_bytes']) * 60) + 20
-                        conversion_progress[url] = {"progress": progress, "status": "Baixando áudio..."}
-                        logger.debug(f"Download progress: {progress}%")
-                    elif d['status'] == 'finished':
-                        conversion_progress[url] = {"progress": 80, "status": "Convertendo para MP3..."}
-                        logger.debug("Download finished, starting conversion")
+        logger.debug(f"Iniciando conversão para a URL: {url}")
+        conversion_progress[url] = {"progress": 0, "status": "Identificando plataforma..."}
 
-                ydl_opts['progress_hooks'] = [progress_hook]
-                logger.debug(f"Searching for: {search_query}")
-                info = ydl.extract_info(f"ytsearch:{search_query}", download=True)['entries'][0]
-                filename = os.path.join(TEMP_DIR, f"{info['title']}.mp3")
-                logger.debug(f"File downloaded: {filename}")
+        platform = identify_platform(url)
+        logger.debug(f"Plataforma identificada: {platform}")
 
-                # Aguardar um pouco para garantir que a conversão seja concluída
-                time.sleep(2)
+        # Definindo ydl_opts dentro da função
+        ydl_opts = {
+            'format': 'bestaudio/best',
+            'postprocessors': [{
+                'key': 'FFmpegExtractAudio',
+                'preferredcodec': 'mp3',
+                'preferredquality': '192',
+            }],
+            'outtmpl': os.path.join(TEMP_DIR, '%(title)s.%(ext)s'),
+            'keepvideo': False,  # Remover o arquivo de vídeo original após conversão
+        }
 
-            except Exception as e:
-                logger.error(f"Error during YouTube download: {str(e)}")
-                raise HTTPException(status_code=500, detail={
-                    "message": f"Erro ao baixar o áudio do YouTube: {str(e)}",
-                    "spotify_info": {
-                        "track": song_name,
-                        "artist": artist,
+        if FFMPEG_PATH:
+            os.environ['PATH'] = FFMPEG_PATH + os.pathsep + os.environ['PATH']
+
+        if platform == "spotify":
+            # Lógica existente para Spotify
+            track = sp.track(url)
+            artist = track['artists'][0]['name']
+            song_name = track['name']
+            search_query = f"{artist} - {song_name}"
+
+            conversion_progress[url] = {"progress": 20, "status": "Procurando vídeo correspondente..."}
+
+            with youtube_dl.YoutubeDL(ydl_opts) as ydl:
+                try:
+                    info = ydl.extract_info(f"ytsearch:{search_query}", download=True)['entries'][0]
+                    logger.debug(f"Info retornada: {info}")  # Log do retorno do info
+                    filename = os.path.join(TEMP_DIR, f"{info['title']}.mp3")  # Defina o filename aqui
+                    logger.debug(f"File path definido: {filename}")  # Log do filename
+                    logger.debug(f"File downloaded: {filename}")
+
+                    # Aguardar um pouco para garantir que a conversão seja concluída
+                    time.sleep(2)
+
+                except Exception as e:
+                    logger.error(f"Error during YouTube download: {str(e)}")
+                    raise HTTPException(status_code=500, detail={
+                        "message": f"Erro ao baixar o áudio do YouTube: {str(e)}",
+                        "spotify_info": {
+                            "track": song_name,
+                            "artist": artist,
+                            "url": url
+                        }
+                    })
+
+        elif platform == "youtube":
+            logger.debug("Iniciando download...")
+            conversion_progress[url] = {"progress": 20, "status": "Baixando vídeo..."}
+            with youtube_dl.YoutubeDL(ydl_opts) as ydl:
+                try:
+                    logger.debug(f"Opções do ydl: {ydl_opts}")
+                    info = ydl.extract_info(url, download=True)  # Use a URL diretamente
+                    logger.debug(f"Info retornada: {info}")  # Log do retorno do info
+                    filename = os.path.join(TEMP_DIR, f"{info['title']}.mp3")  # Defina o filename aqui
+                    logger.debug(f"File path definido: {filename}")  # Log do filename
+                    logger.debug(f"File downloaded: {filename}")
+
+                    # Aguardar um pouco para garantir que a conversão seja concluída
+                    time.sleep(2)
+
+                except Exception as e:
+                    logger.error(f"Error during YouTube download: {str(e)}")
+                    raise HTTPException(status_code=500, detail={
+                        "message": f"Erro ao baixar o áudio do YouTube: {str(e)}",
                         "url": url
-                    }
-                })
+                    })
+
+        else:
+            raise HTTPException(status_code=400, detail="Plataforma não suportada")
 
         # Verificar se o arquivo foi realmente criado
-        attempts = 0
-        while not os.path.exists(filename) and attempts < 10:
-            time.sleep(1)
-            attempts += 1
-
-        if not os.path.exists(filename):
-            logger.error(f"MP3 file not created after {attempts} attempts: {filename}")
+        if filename is None or not os.path.exists(filename):
+            logger.error(f"MP3 file not created: {filename}")
             raise HTTPException(status_code=500, detail="O arquivo MP3 não foi criado corretamente")
 
-        logger.debug(f"Conversion completed: {filename}")
+        logger.debug(f"Conversão concluída: {filename}")
         conversion_progress[url] = {"progress": 100, "status": "Conversão concluída!"}
         background_tasks.add_task(delayed_file_removal, filename, delay=120)
         return FileResponse(filename, media_type='audio/mpeg', filename=os.path.basename(filename))
-    
+
     except Exception as e:
         logger.error(f"Unexpected error: {str(e)}")
         if isinstance(e, HTTPException):
@@ -145,6 +183,15 @@ async def delayed_file_removal(file_path, delay):
             print(f"Arquivo temporário não encontrado: {file_path}")
     except Exception as e:
         print(f"Erro ao remover o arquivo temporário: {e}")
+
+def identify_platform(url):
+    # Simplificação: vamos tratar todos os links diretamente
+    if "spotify.com" in url:
+        return "spotify"
+    elif "youtube.com" in url or "youtu.be" in url:
+        return "youtube"
+    # Adicione mais verificações conforme necessário
+    return "generic"
 
 if __name__ == "__main__":
     import uvicorn
