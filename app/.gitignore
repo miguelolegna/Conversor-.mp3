@@ -5,7 +5,7 @@ config.py
 # Ignorar arquivos compilados Python
 *.pyc
 
-# Ignorar diretório de ambiente virtual (caso decida usar no futuro)
+# Ignorar diretório de ambiente virtual (n necessario)
 venv/
 
 # Ignorar arquivos de sistema
@@ -18,7 +18,7 @@ Thumbs.db
 # Ignorar arquivos de log
 *.log
 
-# Ignorar arquivos de musicas transferidas
+# Ignorar arquivos transferidos
 *.mp3
 *.mp4
 *.webm
