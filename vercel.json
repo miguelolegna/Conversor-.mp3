@@ -1,5 +1,6 @@
 {
-    "rewrites": [
-      { "source": "/", "destination": "app/static/index.html" }
-    ]
-  }
+  "rewrites": [
+      { "source": "/", "destination": "/app/static/index.html" },
+      { "source": "/static/:path*", "destination": "/app/static/:path*" }
+  ]
+}

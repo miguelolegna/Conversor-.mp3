@@ -10,7 +10,4 @@ function addClickEvent(id, url) {
     }
 }
 
-// Adicionar eventos de clique para cada imagem
-addClickEvent("youtubeImage", "youtube.html");
-addClickEvent("spotifyImage", "spotify.html");
-addClickEvent("appleMusicImage", "applemusic.html");
+
