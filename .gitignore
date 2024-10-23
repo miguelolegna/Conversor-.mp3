@@ -5,9 +5,6 @@ config.py
 # Ignorar arquivos compilados Python
 *.pyc
 
-# Ignorar diretório de ambiente virtual (caso decida usar no futuro)
-venv/
-
 # Ignorar arquivos de sistema
 .DS_Store
 Thumbs.db
@@ -15,12 +12,15 @@ Thumbs.db
 # Ignorar arquivos temporários
 *.tmp
 
-# Ignorar arquivos de log
+# Ignorar arquivos de log e cache
 *.log
+*.cache
 
 # Ignorar arquivos de musicas transferidas
 *.mp3
 *.mp4
 *.webm
 
+#ignorar configuração vercel
+.vercel
 

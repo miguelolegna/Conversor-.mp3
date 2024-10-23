@@ -1,6 +1,12 @@
 {
+  "functions": {
+    "api/*.py": {
+      "runtime": "python 3.12.7" 
+    }
+  },
   "rewrites": [
-      { "source": "/", "destination": "/app/static/index.html" },
-      { "source": "/static/:path*", "destination": "/app/static/:path*" }
+    { "source": "/", "destination": "/app/static/index.html" },
+    { "source": "/static/:path*", "destination": "/app/static/:path*" },
+    { "source": "/api/:path*", "destination": "/api/index.py" }
   ]
 }
