@@ -153,7 +153,7 @@ async def convert_link_to_mp3(background_tasks: BackgroundTasks, url: str = Quer
             raise HTTPException(status_code=500, detail="O arquivo MP3 não foi criado corretamente")
 
         logger.debug(f"Conversão concluída: {filename}")
-        conversion_progress[url] = {"progress": 100, "status": "Conversão concluída!"}
+        conversion_progress[url] = {"progress": 100, "status": "Conversão concluida!"}
         background_tasks.add_task(delayed_file_removal, filename, delay=120)
         return FileResponse(filename, media_type='audio/mpeg', filename=os.path.basename(filename))
 
@@ -161,7 +161,7 @@ async def convert_link_to_mp3(background_tasks: BackgroundTasks, url: str = Quer
         logger.error(f"Unexpected error: {str(e)}")
         if isinstance(e, HTTPException):
             raise e
-        raise HTTPException(status_code=500, detail=f"Erro inesperado: {str(e)}")
+        raise HTTPException(status_code=500, detail={"message": f"Erro inesperado: {str(e)}"})
     finally:
         if url in conversion_progress:
             del conversion_progress[url]
